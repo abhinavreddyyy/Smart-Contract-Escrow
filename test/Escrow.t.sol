@@ -70,4 +70,53 @@ contract EscrowTest is Test {
             uint256(Escrow.Status.AWAITING_DELIVERY)
         );
     }
+
+    /** SELLER CONFIRM DELIVERY */
+    function testIfItSentToSellerOnly() external {
+        vm.prank(buyer);
+        escrow.deposit{value: amount}();
+
+        vm.prank(address(3)); // Some random address
+        vm.expectRevert(Escrow.NotSeller.selector);
+        escrow.sellerConfirmDelivery();
+    }
+
+    function testIfItFailsInWrongState() external {
+        vm.prank(buyer);
+        escrow.deposit{value: amount}();
+
+        vm.prank(seller);
+        escrow.sellerConfirmDelivery();
+
+        // Now the state is AWAITING_ACCEPTANCE
+        vm.prank(seller);
+        vm.expectRevert(Escrow.InvalidState.selector);
+        escrow.sellerConfirmDelivery();
+    }
+
+    function testStatusIsAwaitingAcceptance() external {
+        vm.prank(buyer);
+        escrow.deposit{value: amount}();
+
+        vm.prank(seller);
+        escrow.sellerConfirmDelivery();
+
+        assertEq(
+            uint256(escrow.currentStatus()),
+            uint256(Escrow.Status.AWAITING_ACCEPTANCE)
+        );
+    }
+
+    function testSuccessfulSellerConfirmDelivery() external {
+        vm.prank(buyer);
+        escrow.deposit{value: amount}();
+
+        vm.prank(seller);
+        escrow.sellerConfirmDelivery();
+
+        assertEq(
+            uint256(escrow.currentStatus()),
+            uint256(Escrow.Status.AWAITING_ACCEPTANCE)
+        );
+    }
 }
