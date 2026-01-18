@@ -142,4 +142,64 @@ contract EscrowTest is Test {
         vm.expectRevert(Escrow.InvalidState.selector);
         escrow.buyerAcceptDelivery();
     }
+
+    function testSuccessfulBuyerAcceptDelivery() external {
+        vm.prank(buyer);
+        escrow.deposit{value: amount}();
+
+        vm.prank(seller);
+        escrow.sellerConfirmDelivery();
+
+        uint256 sellerBalanceBefore = seller.balance; // Store seller's balance before acceptance
+
+        vm.prank(buyer);
+        escrow.buyerAcceptDelivery();
+
+        assertEq(
+            uint256(escrow.currentStatus()),
+            uint256(Escrow.Status.COMPLETED)
+        );
+        assertEq(seller.balance, sellerBalanceBefore + amount);
+    }
+
+    /** REFUND */
+    function testRefundFailsIfNotBuyer() external {
+        vm.prank(buyer);
+        escrow.deposit{value: amount}();
+
+        vm.prank(address(3)); // Some random address
+        vm.expectRevert(Escrow.NotBuyer.selector);
+        escrow.refund();
+    }
+
+    function testRefundFailsIfDeadlineNotPassed() external {
+        vm.prank(buyer);
+        escrow.deposit{value: amount}();
+
+        // Move time forward but not past the deadline
+        vm.warp(block.timestamp + 2 days);
+
+        vm.prank(buyer);
+        vm.expectRevert(Escrow.DeadlineNotReached.selector);
+        escrow.refund();
+    }
+
+    function testSuccessfulRefund() external {
+        vm.prank(buyer);
+        escrow.deposit{value: amount}();
+
+        uint256 buyerBalanceBefore = buyer.balance; // Store buyer's balance before refund
+
+        // Move time forward past the deadline
+        vm.warp(block.timestamp + 4 days);
+
+        vm.prank(buyer);
+        escrow.refund();
+
+        assertEq(
+            uint256(escrow.currentStatus()),
+            uint256(Escrow.Status.REFUNDED)
+        );
+        assertEq(buyer.balance, buyerBalanceBefore + amount);
+    }
 }
