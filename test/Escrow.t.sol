@@ -202,4 +202,30 @@ contract EscrowTest is Test {
         );
         assertEq(buyer.balance, buyerBalanceBefore + amount);
     }
+
+    function testRefundFailsInInitialState() external {
+        // Test failure before the deposit
+        vm.prank(buyer);
+        vm.expectRevert(Escrow.InvalidState.selector);
+        escrow.refund();
+    }
+
+    function testRefundFailsIfAlreadyCompleted() external {
+        vm.prank(buyer);
+        escrow.deposit{value: amount}();
+
+        vm.prank(seller);
+        escrow.sellerConfirmDelivery();
+
+        vm.prank(buyer);
+        escrow.buyerAcceptDelivery();
+        // Now the state is COMPLETED
+
+        // ensure we are past deadline so we don't hit the deadline error instead
+        vm.warp(block.timestamp + 4 days);
+
+        vm.prank(buyer);
+        vm.expectRevert(Escrow.InvalidState.selector);
+        escrow.refund();
+    }
 }
