@@ -1,6 +1,8 @@
 # Escrow- Two Party handshake Escrow (ETH)
 A Secure decentralized Escrow which holds ETH from a buyer and releases it to a seller only after seller delivery and buyer acceptance, with timeout based failure resolution
 
+### Escrow design is buyer-driven deployment.
+
 ## User Actions
 ### Buyer
 1. Wants refund if seller doesn't deliver
